@@ -95,13 +95,15 @@ print(point)
 print(line)
 
 # Object can be used as you wish!
-point + line
+point + line #package: patchwork package is required
 
 
 # Magic of ggplot2
 ggplot(data = mpg)+ 
   geom_point(mapping = aes(x = displ, y = hwy))+ 
-  geom_smooth(mapping = aes(x = displ, y = hwy))
+  geom_smooth(mapping = aes(x = displ, y = hwy), method = "loess")+
+  labs(x = "Engine size", y = "Miles per gallon for highway")+
+  theme_classic()
 
 ggplot(data = mpg,
        mapping = aes(x = displ, y = hwy))+ 
@@ -136,21 +138,42 @@ ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) +
     se = FALSE
   )
 
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) +
+  geom_point() +
+  geom_smooth(
+    #data = filter(mpg, class == "subcompact"),
+    se = FALSE
+  )
+
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) +
+  geom_point() +
+  geom_smooth(
+    data = filter(mpg, class == "subcompact"),
+    se = FALSE
+  )
+
 # Diamonds are forever
+
+## There are default values for some arguments
 ggplot(data = diamonds) +
-  geom_bar(mapping = aes(x = cut))
+  geom_bar(mapping = aes(x = cut), stat = "count")
+# the same is
+ggplot(data = diamonds) +
+  geom_bar(mapping = aes(x = cut)) # stat = "count" is default for geom_bar()
 
 ggplot(data = diamonds) + 
-  stat_count(mapping = aes(x = cut))
+  stat_count(mapping = aes(x = cut), geom = "bar")
+ggplot(data = diamonds) + 
+  stat_count(mapping = aes(x = cut)) # geom = "bar" is default for stat_count
 
-
+## Sometimes you need to get out of comfort zone and change the value of argument
 ggplot(data = diamonds) +
   geom_bar(mapping = aes(x = cut, y = mean(price)), stat = "identity")
 
 ggplot(data = diamonds) +
   geom_bar(mapping = aes(x = cut, y = after_stat(prop), group = 1))
 
-
+## Functions can be given as values to some arguments
 ggplot(data = diamonds) +
   stat_summary(
     mapping = aes(x = cut, y = depth),
@@ -219,10 +242,10 @@ bar + coord_flip()
 #   <COORDINATE_FUNCTION> +
 #   <FACET_FUNCTION>
 #   
-# function_name(arg1 = val1, arg2 = val2, ...)  
+# function_name(arg1 = val1, arg2 = 2, arg3 = FALSE, arg4 = "a",...)  
 
 x <- 3 * 4
-object_name <- value
+# object_name <- value
 this_is_a_really_long_name <- 2.5
 this_is_a_really_long_name
 # i_use_snake_case
