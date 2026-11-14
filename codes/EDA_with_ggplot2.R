@@ -87,7 +87,13 @@ mpg %>%
   ggplot(mapping = aes(x = displ, y = hwy))+
   geom_point(aes(size = hwy, color = class))+
   geom_smooth(aes(x = displ, y = hwy), method = "lm")+
-  facet_wrap(vars(drv))
+  facet_wrap(vars(drv), nrow = 3)
+
+mpg %>% 
+  ggplot(mapping = aes(x = displ, y = hwy))+
+  geom_point(aes(size = hwy, color = class))+
+  geom_smooth(aes(x = displ, y = hwy), method = "lm")+
+  facet_wrap(vars(drv), ncol = 3)
 
 mpg %>% 
   ggplot(mapping = aes(x = displ, y = hwy))+
@@ -102,14 +108,27 @@ mpg %>%
 # They are very useful in map projections and polar plots
 # For example, projecting bubble map and changing stacked bar into pie
 # Here coord_fixed() is used to change the aspect ratio of X and Y axes
+
+
+mpg |> 
+  group_by(drv) |> 
+  summarise(hwy = median(hwy), .groups = 'drop') |> 
+  ggplot(aes(x = drv, y = hwy))+
+  geom_col()+ 
+  coord_flip()
+
 mpg %>% 
   ggplot(mapping = aes(cty, hwy)) +
-  geom_point()
+  geom_point() 
 
 mpg %>% 
   ggplot(mapping = aes(cty, hwy)) +
   geom_point() +
-  coord_fixed()
+  scale_x_continuous(breaks = 0:40)+
+  scale_y_continuous(breaks = 0:50)+
+  labs(x = "City mileage(mile per gallon)",
+       y = "Highway mileage(mile per gallon)")+
+  coord_fixed(ratio = 1)
 
 # 7. Themes ------------------------------------------------------------------
 
@@ -126,27 +145,29 @@ mpg %>%
   theme(
     legend.position = "top",
     axis.line = element_line(linewidth = 0.75),
-    axis.line.x.bottom = element_line(colour = "blue")
+    axis.line.x.bottom = element_line(colour = "blue"),
+    text = element_text(family = "mono", face = "bold.italic")
   )
 
 mpg %>% 
   ggplot(mapping = aes(displ, hwy)) +
   geom_point(mapping = aes(colour = class)) +
   geom_smooth(formula = y ~ x, method = "lm") +
-  scale_colour_viridis_d() +
+  scale_colour_viridis_d(option = "turbo") +
   facet_grid(year ~ drv) +
-  coord_fixed() +
+  coord_fixed(ratio = 1/4) +
   theme_minimal() +
-  theme(panel.grid.minor = element_blank())
+  theme(panel.grid.minor = element_blank(),
+        text = element_text(colour = "maroon", family = "mono", face = "bold"))
 
 mpg %>% 
   ggplot(mapping = aes(displ, hwy)) +
   geom_point(mapping = aes(colour = class)) +
   geom_smooth(formula = y ~ x, method = "lm") +
-  scale_colour_viridis_d() +
-  facet_wrap(year ~ drv) +
-  theme_minimal() +
-  theme(panel.grid.minor = element_blank())
+  scale_colour_viridis_d(option = "magma") +
+  facet_grid(year ~ drv) +
+  theme_bw() +
+  theme(panel.grid.minor  = element_blank())
 
 # Exploratory data analysis -----------------------------------------------
 
@@ -172,13 +193,13 @@ mpg %>%
 mpg %>% 
   ggplot(aes(hwy))+
   geom_dotplot(fill = "skyblue", 
-               color = "skyblue")
+               color = "black")
 
 # Frequency polygon
 mpg %>% 
   ggplot(aes(hwy))+
   geom_freqpoly(color = "maroon",
-                size = 1)
+                linewidth = 1)
 
 # Histogram
 mpg %>% 
@@ -203,6 +224,16 @@ mpg %>%
   geom_qq(aes(sample = hwy),
           color = "maroon")
 
+#This is normalilty in the following plot.
+data.frame(x = rnorm(n = 10000)) |> 
+  ggplot()+
+  geom_qq(aes(sample = x))
+
+data.frame(x = rnorm(n = 10000)) |> 
+  ggplot(aes(x))+
+  geom_density(kernel = "gaussian", 
+             color = "maroon",
+             size = 1)
 
 # One variable - discrete -------------------------------------------------
 
@@ -237,8 +268,7 @@ mpg %>%
     y = "Number of cars"
   )+
   theme_minimal()+
-  theme(panel.grid = element_blank(),
-        axis.text.y = element_blank())
+  theme(panel.grid = element_blank())
 
 # It is easier to use the geom_col()
 # But we will need two aesthetic mapping in geom_col()
@@ -269,6 +299,12 @@ mpg %>%
     axis.ticks = element_blank(),
     panel.grid = element_blank()
   )
+
+janitor::tabyl(mpg,fl) |> 
+  ggplot(aes(fl, percent))+
+  geom_col(fill = "royalblue")+
+  geom_text(aes(label = scales::percent(percent)))
+
 # Here, we need to overwrite the mapping in layer__
 # geom_text(mapping = aes(x = reorder(fl, -percent), y = percent,label = percent),
 # vjust = -0.3)
@@ -351,7 +387,11 @@ mpg %>%
 # But it gives only maximum value
 mpg %>% 
   ggplot()+
-  geom_col(aes(x = fct_reorder(class, hwy, .fun = max, .desc=T), y = hwy), position = "dodge")
+  geom_col(aes(x = fct_reorder(class, hwy, .fun = max, .desc=T), 
+               y = hwy), position = "dodge")
+
+ggplot(mpg, aes(x = fct_reorder(class, hwy, .fun = mean, .desc = TRUE), y = hwy)) +
+  stat_summary(fun = mean, geom = "col")
 
 # Thus we'd better summarize the data before we use geom_col()
 mpg %>% 
@@ -368,17 +408,19 @@ mpg %>%
 
 
 # Dot-plots are alternative but graph literacy is required
-mpg %>% 
-  ggplot(aes(x = hwy, y = class)) +
-  geom_dotplot(binaxis = "y", stackdir = "center")
+mpg %>% # wrong way
+  ggplot(aes(x = hwy, y = drv, fill = drv)) +
+  geom_dotplot(binaxis = "y", stackdir = "up", 
+               binwidth = 1/30, dotsize = 1)+
+  coord_cartesian(xlim = c(10,100))# do not use, geom_point is better
 
-mpg %>% 
-  ggplot(aes(x = class,y = hwy)) +
+mpg %>% #correct way
+  ggplot(aes(x = drv,y = hwy, fill = drv)) +
   geom_dotplot(binaxis = "y", stackdir = "center")
 
 # Box and whisker plot 
 mpg %>% 
-  ggplot(aes(drv,hwy)) +
+  ggplot(aes(y = drv,x =hwy)) +
   geom_boxplot(aes(fill = drv)) 
 
 # Violin plot
@@ -391,15 +433,40 @@ mpg %>%
 
 # dot plot discrete
 diamonds %>% 
-  ggplot(aes(cut, color)) +
-  geom_count(color = "skyblue")
+  ggplot(aes(x = cut, y = clarity)) +
+  geom_count(color = "firebrick")
 
+# Cluster bar
+mpg %>% 
+  ggplot() +
+  geom_bar(aes(x = fl, fill = drv),
+           position = "dodge")
+
+# stacked bar
+mpg %>% 
+  ggplot() +
+  geom_bar(aes(x = fl, fill = drv),
+           position = "stack")
+
+# 100% stacked bar
+mpg %>% 
+  ggplot() +
+  geom_bar(aes(x = fl, fill = drv),
+           position = "fill") 
+
+mpg %>% 
+  ggplot() +
+  geom_bar(aes(x = fl, fill = drv),
+           position = "fill") +
+  facet_wrap(vars(manufacturer)) +
+  coord_flip()+
+  theme(legend.position = "bottom")
 
 #  Continuous function ----------------------------------------------------
 
 # Area graph
 economics %>% 
-  ggplot(aes(date,unemploy)) +
+  ggplot(aes(x = date,y = unemploy)) +
   geom_area(fill = "maroon")
   
 # Line graph
@@ -442,7 +509,7 @@ df %>%
 # geom_map and geom_sf
 
 # geom_map()
-# geom_map() uses data frames with longitude and lattitude data
+# geom_map() uses data frames with longitude and latitude data
 # We need 
 # data frame with measured variable and 
 # data frame with area variable
@@ -467,7 +534,8 @@ mdf %>%
     map = map               
   ) +
   expand_limits(x = map$long, y = map$lat) +
-  scale_fill_gradient(low = "green",high = "red")
+  scale_fill_viridis_c(direction = -1, option = "magma")+
+  theme_void()
 
 # geom_sf()
 # geom_sf() needs simple feature file types like .json
@@ -489,8 +557,9 @@ srtemp <- srtemp %>% select(!1)
 sr %>% 
   left_join(srtemp) %>% 
   select(ST, temp) %>% 
-  ggplot() +
+  ggplot() + 
   geom_sf(aes(fill = temp))+
+  geom_sf_text(aes(label = ST))+
   scale_fill_gradient(low = "yellow", high = "red")+
   labs(title = "Temperature around Myanmar in summer",
        subtitle = "Imaginary data") +
